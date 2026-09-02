@@ -131,13 +131,18 @@
     background: rgba(255,255,255,0.12);
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 18px;
-    line-height: 1;
+    padding: 6px 10px;
     cursor: pointer;
     backdrop-filter: blur(2px);
     transition: background-color .15s ease, transform .1s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: #fff;
   }
+  .header-doc-btn-icon { font-size: 17px; line-height: 1; }
+  .header-doc-btn-label { font-size: 10px; line-height: 1; white-space: nowrap; opacity: 0.9; }
   .header-doc-btn:hover { background: rgba(255,255,255,0.22); }
   .header-doc-btn:active { transform: scale(0.95); }
   .kicker { display:flex; align-items:center; gap:8px; color:var(--color-accent); margin-bottom:4px; font-size:12px; letter-spacing:0.15em; text-transform:uppercase; }
@@ -1169,8 +1174,14 @@ function CustomsCalculator({ userEmail, onLogout, initialData, onSave }) {
       <div className="header no-print">
         <div className="header-badge"></div>
         <div className="header-doc-btns">
-          <button className="header-doc-btn" onClick={() => setInvoiceModalOpen(true)} title="ອອກໃບ Invoice (EN)">🧾</button>
-          <button className="header-doc-btn" onClick={() => setDeclarationModalOpen(true)} title="ອອກໃບແຈ້ງພາສີໂດຍສັງເຂບ">📄</button>
+          <button className="header-doc-btn" onClick={() => setInvoiceModalOpen(true)} title="ອອກໃບ Invoice (EN)">
+            <span className="header-doc-btn-icon">🧾</span>
+            <span className="header-doc-btn-label">Invoice</span>
+          </button>
+          <button className="header-doc-btn" onClick={() => setDeclarationModalOpen(true)} title="ອອກໃບແຈ້ງພາສີໂດຍສັງເຂບ">
+            <span className="header-doc-btn-icon">📄</span>
+            <span className="header-doc-btn-label">ໃບແຈ້ງ</span>
+          </button>
         </div>
         <div className="kicker"><IconStamp /><span>{settings.orgName || DEFAULT_SETTINGS.orgName}</span></div>
         <h1 className="title">ຄິດໄລ່ຄ່າພາສີ-ອາກອນ<br />ສິນຄ້າຂາເຂົ້າ-ຂາອອກ</h1>
