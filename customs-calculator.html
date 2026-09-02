@@ -645,7 +645,7 @@ const BG_PRESETS = [
   { name: "ເທົາ", bg: "#f0f0ef", primary: "#2b2b2b", accent: "#9a8c7a" },
 ];
 
-function DocumentModal({ type, open, onClose, docMeta, onChange, onExport }) {
+function DocumentModal({ type, open, onClose, docMeta, onChange, onExport, onExportPdf }) {
   if (!open) return null;
   const set = (k) => (v) => onChange({ ...docMeta, [k]: v });
   const isInvoice = type === "invoice";
@@ -707,9 +707,14 @@ function DocumentModal({ type, open, onClose, docMeta, onChange, onExport }) {
           )}
         </div>
 
-        <button className="login-btn" style={{ margin: "16px" }} onClick={onExport}>
-          ດາວໂຫລດ Excel
-        </button>
+        <div style={{ display: "flex", gap: 8, margin: "16px" }}>
+          <button className="login-btn" style={{ flex: 1 }} onClick={onExport}>
+            ດາວໂຫລດ Excel
+          </button>
+          <button className="login-btn" style={{ flex: 1, background: "#8a2e2e" }} onClick={onExportPdf}>
+            ດາວໂຫລດ PDF
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -984,6 +989,7 @@ function CustomsCalculator({ userEmail, onLogout, initialData, onSave }) {
   const setDocMeta = (patch) => updateSheet({ docMeta: { ...docMeta, ...patch } });
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [declarationModalOpen, setDeclarationModalOpen] = useState(false);
+  const [printMode, setPrintMode] = useState("calc");
 
   const plate = activeSheet.plate;
   const setPlate = (v) => updateSheet({ plate: v });
@@ -1067,7 +1073,18 @@ function CustomsCalculator({ userEmail, onLogout, initialData, onSave }) {
     XLSX.writeFile(wb, `ໃບຄິດໄລ່ພາສີ_${activeSheet.name}${plate ? "_" + plate : ""}.xlsx`);
   };
 
-  const exportPdf = () => window.print();
+  const exportPdf = () => {
+    setPrintMode("calc");
+    setTimeout(() => window.print(), 50);
+  };
+  const printInvoicePdf = () => {
+    setPrintMode("invoice");
+    setTimeout(() => window.print(), 50);
+  };
+  const printDeclarationPdf = () => {
+    setPrintMode("declaration");
+    setTimeout(() => window.print(), 50);
+  };
 
   // ---- Export: Invoice (English) — matches Copy_of_INVOICE_IM4.xlsx layout ----
   const exportInvoiceEN = () => {
@@ -1254,26 +1271,119 @@ function CustomsCalculator({ userEmail, onLogout, initialData, onSave }) {
         </div>
       </div>
 
-      <div className="print-only print-report">
-        {settings.orgName && <div className="print-org">{settings.orgName}</div>}
-        <h1>ໃບຄິດໄລ່ຄ່າພາສີ-ອາກອນ ສິນຄ້າຂາເຂົ້າ-ຂາອອກ</h1>
-        <div className="print-meta">
-          <span>ລູກຄ້າ: {activeSheet.name} · ທະບຽນລົດ: {plate || "-"}</span>
-          <span>ອັດຕາແລກປ່ຽນ 1$ = {fmt(globalRate)} ກີບ</span>
+      {printMode === "calc" && (
+        <div className="print-only print-report">
+          {settings.orgName && <div className="print-org">{settings.orgName}</div>}
+          <h1>ໃບຄິດໄລ່ຄ່າພາສີ-ອາກອນ ສິນຄ້າຂາເຂົ້າ-ຂາອອກ</h1>
+          <div className="print-meta">
+            <span>ລູກຄ້າ: {activeSheet.name} · ທະບຽນລົດ: {plate || "-"}</span>
+            <span>ອັດຕາແລກປ່ຽນ 1$ = {fmt(globalRate)} ກີບ</span>
+          </div>
+          <table className="print-table">
+            <thead><tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr></thead>
+            <tbody>
+              {tableRows.map((row, i) => (
+                <tr key={i}>{row.map((cell, j) => <td key={j}>{typeof cell === "number" ? fmt(cell) : cell}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="print-totals">
+            <span>ລວມມູນຄ່າ: {fmt(grandCustomsValue)} ກີບ</span>
+            <span style={{ fontWeight: 700 }}>ລວມພາສີ-ອາກອນທັງໝົດ: {fmt(grandTotalTax)} ກີບ</span>
+          </div>
         </div>
-        <table className="print-table">
-          <thead><tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr></thead>
-          <tbody>
-            {tableRows.map((row, i) => (
-              <tr key={i}>{row.map((cell, j) => <td key={j}>{typeof cell === "number" ? fmt(cell) : cell}</td>)}</tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="print-totals">
-          <span>ລວມມູນຄ່າ: {fmt(grandCustomsValue)} ກີບ</span>
-          <span style={{ fontWeight: 700 }}>ລວມພາສີ-ອາກອນທັງໝົດ: {fmt(grandTotalTax)} ກີບ</span>
+      )}
+
+      {printMode === "invoice" && (
+        <div className="print-only print-report">
+          <h1>INVOICE</h1>
+          <div style={{ fontSize: 12, marginBottom: 12 }}>
+            <div><strong>CONSIGNEE:</strong> {docMeta.consignee || "..................................."}</div>
+            <div><strong>Address:</strong> {docMeta.address || "..................................."}</div>
+            <div><strong>Mode of Transport:</strong> {docMeta.transportMode || "..................................."}</div>
+            <div style={{ display: "flex", gap: 24, marginTop: 4 }}>
+              <span><strong>No:</strong> {docMeta.invoiceNo || "........."}</span>
+              <span><strong>Date:</strong> {docMeta.invoiceDate || "........."}</span>
+              <span><strong>From:</strong> {docMeta.from || "........."}</span>
+            </div>
+          </div>
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>NO</th><th>Description of goods</th><th>Quantity</th><th>Unit</th>
+                <th>Unit Price (USD)</th><th>Amount (USD)</th><th>G.W (kgs)</th><th>N.W (kgs)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={it.id}>
+                  <td>{i + 1}</td>
+                  <td>{it.nameEn || it.name}</td>
+                  <td>{fmt(parseFloat(it.qty) || 0)}</td>
+                  <td>{it.unit}</td>
+                  <td>{fmt(parseFloat(it.unitPrice) || 0)}</td>
+                  <td>{fmt(results[i]?.usd || 0)}</td>
+                  <td>{fmt(parseFloat(it.grossWeight) || 0)}</td>
+                  <td>{fmt(parseFloat(it.netWeight) || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="print-totals">
+            <span style={{ fontWeight: 700 }}>
+              TOTAL: {fmt(results.reduce((s, r) => s + (r.usd || 0), 0))} USD ·
+              G.W {fmt(items.reduce((s, it) => s + (parseFloat(it.grossWeight) || 0), 0))} kgs ·
+              N.W {fmt(items.reduce((s, it) => s + (parseFloat(it.netWeight) || 0), 0))} kgs
+            </span>
+          </div>
         </div>
-      </div>
+      )}
+
+      {printMode === "declaration" && (
+        <div className="print-only print-report">
+          <div className="print-org">ສາທາລະນະລັດ ປະຊາທິປະໄຕ ປະຊາຊົນລາວ</div>
+          <div className="print-org">ສັນຕິພາບ ເອກະລາດ ປະຊາທິປະໄຕ ເອກະພາບ ວັດທະນາຖາວອນ</div>
+          <h1>ໃບແຈ້ງພາສີໂດຍສັງເຂບ</h1>
+          <div style={{ fontSize: 12, marginBottom: 12 }}>
+            <div>ຊື່ ແລະ ນາມສະກຸນຜູ້ແຈ້ງສິນຄ້າ: {docMeta.declarerName || "..................................."} ເບີໂທ: {docMeta.declarerPhone || "............"}</div>
+            <div>ຊື່ຜູ້ຂົນສົ່ງ: {docMeta.carrierName || "................"} ທະບຽນລົດ: {plate || "................"} ຊື່ຜູ້ນຳເຂົ້າ: {docMeta.importerName || "................"}</div>
+            <div>ລົງວັນທີ: {docMeta.declareDate || "............"} ໃບແຈ້ງລາຄາ (Invoice) ເລກທີ: {docMeta.invoiceNo || "............"} ວັນທີ: {docMeta.invoiceDate || "............"} ລູກຄ້າ: {activeSheet.name}</div>
+          </div>
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>ລ/ດ</th><th>ລະຫັດສີນຄ້າ</th><th>ຊະນິດສີນຄ້າ</th><th>ຈໍານວນ</th><th>ຫົວໜ່ວຍ</th>
+                <th>ລາຄາ $ ຕໍ່ຫົວໜ່ວຍ</th><th>ລວມເປັນເງິນ $</th><th>ນ້ຳໜັກລວມ</th><th>ນ້ຳໜັກຈິງ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={it.id}>
+                  <td>{i + 1}</td>
+                  <td>{it.hsCode}</td>
+                  <td>{it.name}</td>
+                  <td>{fmt(parseFloat(it.qty) || 0)}</td>
+                  <td>{it.unit}</td>
+                  <td>{fmt(parseFloat(it.unitPrice) || 0)}</td>
+                  <td>{fmt(results[i]?.usd || 0)}</td>
+                  <td>{fmt(parseFloat(it.grossWeight) || 0)}</td>
+                  <td>{fmt(parseFloat(it.netWeight) || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="print-totals">
+            <span style={{ fontWeight: 700 }}>ລວມ: {fmt(results.reduce((s, r) => s + (r.usd || 0), 0))} USD</span>
+          </div>
+          <div style={{ fontSize: 11, marginTop: 20 }}>
+            ຂ້າພະເຈົ້າຂໍຢັ້ງຢືນວ່າ ຂໍ້ມູນທີ່ໄດ້ແຈ້ງລົງໃນໃບແຈ້ງສິນຄ້າຊົ່ວຄາວສະບັບນີ້ ແມ່ນຖືກຕ້ອງຄົບຖ້ວນ
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 48, fontSize: 12 }}>
+            <span>ເຈົ້າໜ້າທີ່ພາສີ</span>
+            <span>ລາຍເຊັນຜູ້ແຈ້ງສິນຄ້າ</span>
+          </div>
+        </div>
+      )}
 
       <div className="totalbar no-print">
         <div className="totalbar-meta"><IconPackage /><span>{activeSheet.name} · {items.length} ລາຍການ · ມູນຄ່າລວມ {fmt(grandCustomsValue)} ກີບ</span></div>
@@ -1303,6 +1413,10 @@ function CustomsCalculator({ userEmail, onLogout, initialData, onSave }) {
           exportInvoiceEN();
           setInvoiceModalOpen(false);
         }}
+        onExportPdf={() => {
+          setInvoiceModalOpen(false);
+          printInvoicePdf();
+        }}
       />
 
       <DocumentModal
@@ -1314,6 +1428,10 @@ function CustomsCalculator({ userEmail, onLogout, initialData, onSave }) {
         onExport={() => {
           exportCustomsDeclaration();
           setDeclarationModalOpen(false);
+        }}
+        onExportPdf={() => {
+          setDeclarationModalOpen(false);
+          printDeclarationPdf();
         }}
       />
     </div>
